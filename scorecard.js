@@ -1,6 +1,9 @@
 // const url="https://www.espncricinfo.com//series/ipl-2020-21-1210595/mumbai-indians-vs-chennai-super-kings-1st-match-1216492/full-scorecard";
 const request =require("request");
 const cheerio=require("cheerio");
+const path=require('path');
+const fs=require('fs');
+const xlsx=require('xlsx');
 
 function processscorecard(url){
     request(url,cb);
@@ -58,10 +61,61 @@ function extractmatchdetail(html){
               let psix= $(allcols[6]).text().trim();
               let pstrikerate= $(allcols[7]).text().trim();
               console.log(`${pname} | ${prun} | ${pball} | ${pfour} | ${psix} | ${pstrikerate}` );
+              processplayer(teamname,pname,prun,pball,pfour,psix,pstrikerate,venue,date,opponentname,won);
             }
         }
     }
     // console.log(htmlstr);
+}
+
+function processplayer(teamname,pname,prun,pball,pfour,psix,pstrikerate,venue,date,opponentname,won){
+   let teampath=path.join(__dirname,"ipl",teamname);
+   dircreater(teampath);
+   let filepath=path.join(teampath,pname+".xlsx");
+   let content=excelReader(filepath,pname);
+   let playerobj={
+    //    "teamname":teamname
+        teamname,//for same name key value pair
+        pname,
+        prun,
+        pball,
+        pfour,
+        psix,
+        pstrikerate,
+        venue,
+        date,
+        opponentname,
+        won
+   }
+   content.push(playerobj);
+   excelWriter(filepath,content,pname);
+}
+
+function dircreater(filepath){
+    if(fs.existsSync(filepath)==false){
+        fs.mkdirSync(filepath);
+    }
+}
+
+function excelWriter(filePath, json, sheetName) {
+    let newWB = xlsx.utils.book_new();
+    let newWS = xlsx.utils.json_to_sheet(json);
+    xlsx.utils.book_append_sheet(newWB, newWS, sheetName);
+    xlsx.writeFile(newWB, filePath);
+}
+// // json data -> excel format convert
+// // -> newwb , ws , sheet name
+// // filePath
+// read 
+//  workbook get
+function excelReader(filePath, sheetName) {
+    if (fs.existsSync(filePath) == false) {
+        return [];
+    }
+    let wb = xlsx.readFile(filePath);
+    let excelData = wb.Sheets[sheetName];
+    let ans = xlsx.utils.sheet_to_json(excelData);
+    return ans;
 }
 
 module.exports={
